@@ -20,8 +20,8 @@ from xlstm.xlstm_large.model import (
     DtypeType,
     SequenceKernelType,
     StepKernelType,
+    WeightModeType,
     xLSTMLargeConfig,
-    round_up_to_next_multiple_of,
 )
 
 from ...configuration_utils import PretrainedConfig
@@ -206,17 +206,15 @@ class xLSTMConfig(PretrainedConfig):
         )
 
     @property
-    def qk_dim(self):
-        return round_up_to_next_multiple_of(
+    def qk_dim(self) -> int:
+        return int(
             self.embedding_dim * self.qk_dim_factor,
-            multiple_of=self.mlstm_round_up_to_multiple_of,
         )
 
     @property
     def v_dim(self):
-        return round_up_to_next_multiple_of(
+        return int(
             self.embedding_dim * self.v_dim_factor,
-            multiple_of=self.mlstm_round_up_to_multiple_of,
         )
 
     @property

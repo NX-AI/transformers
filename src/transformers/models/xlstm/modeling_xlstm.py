@@ -55,15 +55,19 @@ class xLSTMCache:
         self.seqlen_offset = torch.tensor(0, dtype=torch.int64, device=device)
         self.dtype = dtype
         self.config = config
+        num_heads = config.num_heads
+        qk_head_dim = config.qk_head_dim
+        v_head_dim = config.v_head_dim
+        num_blocks = config.num_blocks
         self.rnn_state: mLSTMStateType = {
             layer: (
                 torch.zeros(
-                    [batch_size, config.num_heads, config.qk_head_dim, config.v_head_dim], dtype=dtype, device=device
+                    [batch_size, num_heads, qk_head_dim, v_head_dim], dtype=dtype, device=device
                 ),
-                torch.zeros([batch_size, config.num_heads, config.qk_head_dim], dtype=dtype, device=device),
-                torch.zeros([batch_size, config.num_heads, 1], dtype=dtype, device=device),
+                torch.zeros([batch_size, num_heads, qk_head_dim], dtype=dtype, device=device),
+                torch.zeros([batch_size, num_heads, 1], dtype=dtype, device=device),
             )
-            for layer in range(config.num_blocks)
+            for layer in range(num_blocks)
         }
         self.rnn_state_initial = True
 
