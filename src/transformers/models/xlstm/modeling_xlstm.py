@@ -22,21 +22,23 @@ from ...utils import (
 from .configuration_xlstm import xLSTMConfig
 
 
-from mlstm_simple.model import (
+from xlstm.xlstm_large.model import (
     mLSTMBlock,
     RMSNorm,
-    mLSTMConfig,
+    xLSTMLargeConfig,
     mLSTMStateType,
     soft_cap,
 )
 
-_CHECKPOINT_FOR_DOC = "NX-AI/xLSTM-7B"
+_CHECKPOINT_FOR_DOC = "NX-AI/xLSTM-7b"
 _CONFIG_FOR_DOC = "xLSTMConfig"
 
 
 class xLSTMCache:
     """
-    Arguments:
+    Cache / RNN State handler for xLSTM.
+
+    Args:
         config: xLSTMConfig
         batch_size: int
         dtype: torch.dtype
@@ -208,10 +210,7 @@ class xLSTMModel(xLSTMPreTrainedModel):
         super().__init__(config)
 
         self.embeddings = nn.Embedding(config.vocab_size, config.embedding_dim)
-        # TODO remove - test if embeddings are actually loaded
-        # with torch.no_grad():
-        #     self.embedding.weight -= self.embedding.weight
-        self.blocks = nn.ModuleList([mLSTMBlock(config.to_mlstm_block_config()) for _ in range(config.num_blocks)])
+        self.blocks = nn.ModuleList([mLSTMBlock(config.to_xlstm_block_config()) for _ in range(config.num_blocks)])
 
         self.gradient_checkpointing = False
         self.out_norm = RMSNorm(config.embedding_dim, eps=config.norm_eps)
@@ -219,7 +218,7 @@ class xLSTMModel(xLSTMPreTrainedModel):
         self.post_init()
 
     def _init_weights(self, module):
-        # Not implemented yet
+        # Not implemented yet - use pretrained model.
         pass
 
     def get_input_embeddings(self):
@@ -246,8 +245,6 @@ class xLSTMModel(xLSTMPreTrainedModel):
         attention_mask: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Union[Tuple, xLSTMOutput]:
-        # print("input_ids", input_ids)
-
         output_hidden_states = (
             output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         )
@@ -330,16 +327,6 @@ class xLSTMForCausalLM(xLSTMPreTrainedModel, GenerationMixin):
         # Initialize weights and apply final processing
         # self.register_load_state_dict_pre_hook(self.load_hook)
         self.post_init()
-
-    # def load_hook(self, state_dict, prefix, *args):
-    #     for k in list(state_dict):
-    #         if k == "embedding.weight":
-    #             print(">", prefix, k)
-    #             state_dict["backbone.embeddings.weight"] = state_dict.pop(k)
-    #         else:
-    #             print(prefix, k)
-
-    #     return
 
     def get_output_embeddings(self):
         return self.lm_head
@@ -451,7 +438,6 @@ class xLSTMForCausalLM(xLSTMPreTrainedModel, GenerationMixin):
         hidden_states = xlstm_outputs[0]
 
         if inserted_bos_token:
-            # print("Inserted BOS token.")
             hidden_states = hidden_states[:, 1:]
 
         logits = self.lm_head(hidden_states.to(self.lm_head.weight.dtype)).float()

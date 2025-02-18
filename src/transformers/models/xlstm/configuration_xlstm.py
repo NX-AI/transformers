@@ -14,15 +14,13 @@
 # limitations under the License.
 """XLSTM configuration"""
 
-import math
-
-from mlstm_simple.model import (
+from xlstm.xlstm_large.model import (
     BackendModeType,
     ChunkwiseKernelType,
     DtypeType,
     SequenceKernelType,
     StepKernelType,
-    mLSTMConfig,
+    xLSTMLargeConfig,
     round_up_to_next_multiple_of,
 )
 
@@ -44,8 +42,65 @@ class xLSTMConfig(PretrainedConfig):
 
 
     Args:
-
-
+        vocab_size (int, optional): Defaults to 50304.
+            Vocabulary size of the xLSTM model. Defines the number of different tokens that can be represented by the
+            `inputs_ids` passed when calling [`xLSTMModel`]. Defaults to the GPT2-NeoX tokenizer size.
+        embedding_dim (int, optional): Defaults to 4096.
+            Dimensionality of the embeddings or hidden states.
+        num_blocks (int, optional): Defaults to 32.
+            Number of blocks of the xLSTM model.
+        num_heads (int, optional): Defaults to 8.
+            Number of heads for the xLSTM Layer/Cell.
+        use_bias (bool, optional): Defaults to False.
+            Whether to use biases in the xLSTM model.
+        norm_reduction_force_float32 (bool, optional): Defaults to True.
+            Whether to force the float32 norm reduction op to be done in fp32 precision.
+        tie_word_embeddings (bool, optional): Defaults to False.
+            Whether to tie word embeddings to the lm head weights.
+        add_out_norm (bool, optional): Defaults to True.
+            Whether to add an output norm after the blocks before the LMHead.
+        norm_eps (float, optional): Defaults to 1e-6.
+            Norm eps for RMSNorm and Layer Norm.
+        qk_dim_factor (float, optional): Defaults to 0.5.
+            Scale factor for the query and key dimension.
+        v_dim_factor (float, optional): Defaults to 1.0.
+            Scale factor for the value dimension.
+        chunkwise_kernel (ChunkwiseKernelType, optional): Defaults to "chunkwise--native_autograd".
+            Kernel type for chunkwise processing mode.
+        sequence_kernel (SequenceKernelType, optional): Defaults to "native_sequence__native".
+            Kernel type for sequence processing mode.
+        step_kernel (StepKernelType, optional): Defaults to "native".
+            Kernel type for step processing mode.
+        mode (BackendModeType, optional): Defaults to "inference".
+            Operation mode (inference is needed for generation).
+        chunk_size (int, optional): Defaults to 64.
+            Internal chunk size.
+        return_last_states (bool, optional): Defaults to True.
+            If to return the last states / cache internally. Needed as True for generation.
+        autocast_kernel_dtype (DtypeType, optional): Defaults to "bfloat16".
+            Kernel dtype for the states.
+        eps (float, optional): Defaults to 1e-6.
+            Epsilon for the mLSTM cell post norm.
+        inference_state_dtype (DtypeType, optional): Defaults to "float32".
+            Kernel dtype for states in inference.
+        ffn_proj_factor (float, optional): Defaults to 2.667.
+            Size factor of the post-up projection gated Feed Forward network.
+        ffn_round_up_to_multiple_of (int, optional): Defaults to 64.
+            Size factor round value of the post-up projection gated Feed Forward network.
+        gate_soft_cap (float, optional): Defaults to 15.0.
+            Gate soft cap scale.
+        output_logit_soft_cap (float, optional): Defaults to 30.0.
+            Output logit soft cap scale.
+        use_cache (bool, optional): Defaults to True.
+            Whether to use the cache (xLSTMCache).
+        pad_token_id (int, optional): Defaults to 1.
+            Pad token id needed for generation.
+        bos_token_id (int, optional): Defaults to 0.
+            BOS token id needed for generation.
+        eos_token_id (int, optional): Defaults to 2.
+            EOS token id needed for generation.
+        force_bos_token_insert (bool, optional): Defaults to True.
+            Whether to force the insertion of a BOS token for prompting.
 
     Example:
 
@@ -78,7 +133,6 @@ class xLSTMConfig(PretrainedConfig):
         # mlstm_layer
         qk_dim_factor: float = 0.5,
         v_dim_factor: float = 1.0,
-        mlstm_round_up_to_multiple_of: int = 64,
         # mlstm backend
         chunkwise_kernel: ChunkwiseKernelType = "chunkwise--native_autograd",
         sequence_kernel: SequenceKernelType = "native_sequence__native",
@@ -119,7 +173,6 @@ class xLSTMConfig(PretrainedConfig):
         # mlstm_layer
         self.qk_dim_factor = qk_dim_factor
         self.v_dim_factor = v_dim_factor
-        self.mlstm_round_up_to_multiple_of = mlstm_round_up_to_multiple_of
         # mlstm backend
         self.chunkwise_kernel = chunkwise_kernel
         self.sequence_kernel = sequence_kernel
@@ -174,8 +227,8 @@ class xLSTMConfig(PretrainedConfig):
     def v_head_dim(self):
         return self.v_dim // self.num_heads
 
-    def to_mlstm_block_config(self):
-        return mLSTMConfig(
+    def to_xlstm_block_config(self):
+        return xLSTMLargeConfig(
             vocab_size=self.vocab_size,
             embedding_dim=self.embedding_dim,
             num_blocks=self.num_blocks,
@@ -187,7 +240,6 @@ class xLSTMConfig(PretrainedConfig):
             # mlstm_layer
             qk_dim_factor=self.qk_dim_factor,
             v_dim_factor=self.v_dim_factor,
-            mlstm_round_up_to_multiple_of=self.mlstm_round_up_to_multiple_of,
             # mlstm backend
             chunkwise_kernel=self.chunkwise_kernel,
             sequence_kernel=self.sequence_kernel,
